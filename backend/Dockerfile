@@ -13,8 +13,8 @@ COPY src ./src
 COPY alembic.ini ./ 2>/dev/null || true
 COPY alembic ./alembic/ 2>/dev/null || true
 
-# Expose Hugging Face Spaces port
-EXPOSE 8001
+# Expose Hugging Face Spaces port (HF Spaces standard port)
+EXPOSE 7860
 
 # Run the FastAPI application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]

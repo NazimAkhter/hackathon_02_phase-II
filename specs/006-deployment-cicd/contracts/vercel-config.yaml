@@ -1,0 +1,134 @@
+# Vercel Deployment Configuration Contract
+# This file documents the required Vercel configuration
+
+# Project Configuration
+project:
+  name: "todo-fullstack-app"
+  framework: "nextjs"
+  root_directory: "frontend"
+  build_command: "npm run build"
+  output_directory: ".next"
+  install_command: "npm install"
+  dev_command: "npm run dev"
+
+# Build Settings
+build:
+  node_version: "20.x"
+  package_manager: "npm"
+  ignore_command: ""  # Empty to build on every push
+
+# Environment Variables (Configure in Vercel Dashboard)
+environment_variables:
+  # Production Environment
+  production:
+    - name: "BETTER_AUTH_SECRET"
+      description: "Shared secret for JWT authentication (must match backend)"
+      required: true
+      secret: true
+
+    - name: "NEXT_PUBLIC_API_URL"
+      description: "Backend API URL (Hugging Face Space URL)"
+      required: true
+      example: "https://your-space.hf.space"
+
+    - name: "DATABASE_URL"
+      description: "Neon PostgreSQL connection string"
+      required: true
+      secret: true
+      example: "postgresql://user:pass@host/db?sslmode=require"
+
+    - name: "NODE_ENV"
+      description: "Node environment"
+      required: true
+      value: "production"
+
+  # Preview Environment (PR deployments)
+  preview:
+    - name: "BETTER_AUTH_SECRET"
+      description: "Same as production"
+      required: true
+      secret: true
+
+    - name: "NEXT_PUBLIC_API_URL"
+      description: "Use production backend for previews"
+      required: true
+      example: "https://your-space.hf.space"
+
+    - name: "DATABASE_URL"
+      description: "Use production database for previews"
+      required: true
+      secret: true
+
+    - name: "NODE_ENV"
+      description: "Node environment"
+      required: true
+      value: "production"
+
+  # Development Environment
+  development:
+    - name: "BETTER_AUTH_SECRET"
+      description: "Local development secret"
+      required: true
+      secret: true
+
+    - name: "NEXT_PUBLIC_API_URL"
+      description: "Local backend"
+      required: true
+      value: "http://localhost:8000"
+
+    - name: "DATABASE_URL"
+      description: "Local or dev database"
+      required: false
+      secret: true
+
+    - name: "NODE_ENV"
+      description: "Node environment"
+      required: true
+      value: "development"
+
+# GitHub Integration
+git:
+  repository: "github.com/[username]/[repository]"
+  production_branch: "main"
+  preview_branches: true  # Enable preview deployments for all branches/PRs
+  auto_expose_system_env_vars: false  # Don't expose Vercel system env vars
+
+# Deployment Settings
+deployment:
+  automatically_deploy_production: true  # Deploy on push to main
+  automatically_deploy_preview: true     # Deploy on PR creation
+  ignore_build_command_exit_code: false  # Fail deployment on build errors
+  include_source_files: false            # Don't include source in deployment
+
+# CORS and Security
+security:
+  headers:
+    - key: "X-Content-Type-Options"
+      value: "nosniff"
+    - key: "X-Frame-Options"
+      value: "DENY"
+    - key: "X-XSS-Protection"
+      value: "1; mode=block"
+
+# Output Format
+output:
+  production_url: "https://[project-name].vercel.app"
+  preview_url: "https://[project-name]-[pr-hash].vercel.app"
+
+# Build Success Criteria
+success_criteria:
+  - "Build completes without errors"
+  - "No TypeScript errors"
+  - "No ESLint errors (warnings allowed)"
+  - "All environment variables loaded"
+  - "Application starts successfully"
+  - "Health check endpoint responds (if applicable)"
+
+# Rollback Strategy
+rollback:
+  method: "Vercel Dashboard instant rollback"
+  steps:
+    - "Go to Vercel Dashboard → Deployments"
+    - "Find previous successful deployment"
+    - "Click 'Promote to Production'"
+  notes: "Vercel maintains deployment history automatically"
