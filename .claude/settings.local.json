@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(ls:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/create-phr.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(python -m pip install email-validator)",
+      "Bash(timeout 5 python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(curl:*)",
+      "Bash(python -c \"import sys; sys.path.insert\\(0, ''src''\\); from api.auth import router; from schemas.auth import SignupRequest, SigninRequest, AuthResponse; print\\(''✓ All imports successful''\\); print\\(''✓ Router configured with'', len\\(router.routes\\), ''routes''\\); print\\(''✓ Schemas validated''\\)\")",
+      "Bash(python3:*)"
+    ]
+  }
+}

@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: Authentication API
+  description: JWT-based authentication system for Todo Application
+  version: 1.0.0
+  contact:
+    name: Authentication & User Management System
+    url: https://github.com/your-org/todo-app
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.example.com/api
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User signup, signin, and session management
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Create new user account
+      description: Register a new user with email and password. Returns JWT token in httpOnly cookie upon success.
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            examples:
+              validSignup:
+                summary: Valid signup request
+                value:
+                  email: user@example.com
+                  password: SecurePass123
+      responses:
+        '201':
+          description: User account created successfully
+          headers:
+            Set-Cookie:
+              description: JWT token in httpOnly cookie
+              schema:
+                type: string
+                example: better-auth.session.token=eyJhbGc...; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                successfulSignup:
+                  summary: Successful signup response
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    email: user@example.com
+                    createdAt: '2026-01-19T12:00:00Z'
+                    lastSignInAt: null
+        '400':
+          description: Invalid request (validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error: Invalid email format
+                weakPassword:
+                  summary: Weak password
+                  value:
+                    error: Password must be at least 8 characters and include letters and numbers
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    error: Email and password are required
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicateEmail:
+                  summary: Email already in use
+                  value:
+                    error: Email already registered
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate existing user
+      description: Sign in with email and password. Returns JWT token in httpOnly cookie upon success.
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+            examples:
+              validSignin:
+                summary: Valid signin request
+                value:
+                  email: user@example.com
+                  password: SecurePass123
+      responses:
+        '200':
+          description: User authenticated successfully
+          headers:
+            Set-Cookie:
+              description: Fresh JWT token in httpOnly cookie
+              schema:
+                type: string
+                example: better-auth.session.token=eyJhbGc...; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                successfulSignin:
+                  summary: Successful signin response
+                  value:
+                    id: 123e4567-e89b-12d3-a456-426614174000
+                    email: user@example.com
+                    createdAt: '2026-01-19T12:00:00Z'
+                    lastSignInAt: '2026-01-19T14:30:00Z'
+        '400':
+          description: Invalid request (validation errors)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingFields:
+                  summary: Missing required fields
+                  value:
+                    error: Email and password are required
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: Wrong email or password
+                  value:
+                    error: Invalid email or password
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                tooManyAttempts:
+                  summary: Too many failed attempts
+                  value:
+                    error: Too many attempts. Try again in 15 minutes
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User's email address (must be unique)
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          description: User's password (min 8 chars, must include letters and numbers)
+          example: SecurePass123
+
+    SigninRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's registered email address
+          example: user@example.com
+        password:
+          type: string
+          description: User's password
+          example: SecurePass123
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - email
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: 123e4567-e89b-12d3-a456-426614174000
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp (ISO 8601)
+          example: '2026-01-19T12:00:00Z'
+        lastSignInAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last successful signin timestamp (ISO 8601)
+          example: '2026-01-19T14:30:00Z'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: Invalid email or password
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session.token
+      description: JWT token stored in httpOnly cookie
+
+security:
+  - cookieAuth: []

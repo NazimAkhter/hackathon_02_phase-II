@@ -1,0 +1,16 @@
+fastapi
+sqlmodel
+pyjwt
+bcrypt
+alembic
+uvicorn[standard]
+psycopg2-binary
+python-dotenv
+pydantic
+pydantic-settings
+email-validator
+
+# Dev dependencies
+pytest
+pytest-asyncio
+httpx
