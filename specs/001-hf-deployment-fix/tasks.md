@@ -117,7 +117,7 @@
 - [ ] T042 Test failure scenarios (invalid token, network timeout, missing backend directory)
 - [ ] T043 Verify error messages are clear and actionable for each failure mode
 - [X] T044 Document actual HF_SPACE_REPO URL in workflow file or repository README
-- [ ] T045 Create ADR for HTTPS Token Authentication decision using /sp.adr command
+- [X] T045 Create ADR for HTTPS Token Authentication decision using /sp.adr command
 
 ---
 
