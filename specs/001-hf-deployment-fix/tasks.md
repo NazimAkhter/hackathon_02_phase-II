@@ -110,10 +110,10 @@
 - [X] T035 [P] Add shallow clone optimization (--depth 1) for Space repository in .github/workflows/deploy-backend.yml
 - [X] T036 [P] Add workflow_dispatch trigger for manual deployment testing in .github/workflows/deploy-backend.yml
 - [X] T037 [P] Update quickstart.md with actual workflow configuration and troubleshooting based on implementation
-- [ ] T038 Test complete workflow end-to-end with manual trigger (workflow_dispatch)
-- [ ] T039 Test workflow with actual code push to main branch
-- [ ] T040 Verify workflow completes within 5-minute performance target
-- [ ] T041 Verify Space rebuilds automatically after successful push
+- [X] T038 Test complete workflow end-to-end with manual trigger (workflow_dispatch)
+- [X] T039 Test workflow with actual code push to main branch
+- [X] T040 Verify workflow completes within 5-minute performance target
+- [X] T041 Verify Space rebuilds automatically after successful push
 - [ ] T042 Test failure scenarios (invalid token, network timeout, missing backend directory)
 - [ ] T043 Verify error messages are clear and actionable for each failure mode
 - [X] T044 Document actual HF_SPACE_REPO URL in workflow file or repository README
