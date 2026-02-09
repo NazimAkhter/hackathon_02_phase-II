@@ -44,15 +44,11 @@ jobs:
           echo "📦 Installing Hugging Face CLI..."
           pip install --upgrade huggingface_hub
           echo "✅ Hugging Face CLI installed successfully"
-          echo "Adding pip bin to PATH..."
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify CLI Installation
         run: |
           echo "🔍 Verifying CLI installation..."
-          which huggingface-cli || echo "CLI not in PATH, checking installation..."
-          pip show huggingface_hub
-          huggingface-cli --version
+          python -c "import huggingface_hub; print(f'huggingface_hub version: {huggingface_hub.__version__}')"
           echo "✅ CLI verification passed"
 
       - name: Configure Git
@@ -81,13 +77,13 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           echo "🔑 Authenticating with Hugging Face..."
-          huggingface-cli login --token $HF_TOKEN
+          python -c "from huggingface_hub import login; login(token='$HF_TOKEN')"
           echo "✅ Authentication successful"
 
       - name: Verify Authentication
         run: |
           echo "🔍 Verifying authentication..."
-          huggingface-cli whoami
+          python -c "from huggingface_hub import whoami; info = whoami(); print(f'Logged in as: {info[\"name\"]}')"
           echo "✅ Authentication verification passed"
 
       - name: Clone Space Repository
