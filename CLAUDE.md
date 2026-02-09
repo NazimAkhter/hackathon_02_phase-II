@@ -371,6 +371,7 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 - Client-side session storage for JWT tokens (httpOnly cookies managed by Better Auth), no local database (003-frontend-ui-integration)
 - TypeScript 5.x with Next.js 16+ (App Router) + Next.js 16.1.3, React 19.2.3, Better Auth 1.4.15, React Hook Form 7.71.1, Tailwind CSS 4.x, shadcn/ui components (004-ui-enhancement-routing)
 - Neon PostgreSQL (existing - no schema changes required) (004-ui-enhancement-routing)
+- Neon Serverless PostgreSQL (production instance) (006-deployment-cicd)
 
 ## Recent Changes
 - 003-frontend-ui-integration: Added TypeScript 5.x with Next.js 16+ (App Router) + Next.js 16+, React 18+, React Hook Form, Tailwind CSS, Better Auth Client SDK

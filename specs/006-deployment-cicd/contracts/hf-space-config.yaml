@@ -1,0 +1,207 @@
+# Hugging Face Spaces Deployment Configuration Contract
+# This file documents the required HF Spaces configuration
+
+# Space Configuration
+space:
+  name: "todo-backend-api"
+  sdk: "docker"  # Using Docker for FastAPI deployment
+  visibility: "public"  # Can be changed to "private" if needed
+  sdk_version: "4.36.0"
+  app_port: 7860  # Standard HF Spaces port
+
+# Dockerfile Requirements
+docker:
+  base_image: "python:3.11-slim"
+  working_directory: "/app"
+  expose_port: 7860
+
+  build_steps:
+    - "Copy requirements.txt"
+    - "Install Python dependencies"
+    - "Copy application code"
+    - "Set environment variables"
+    - "Expose port 7860"
+    - "Run uvicorn server"
+
+  dockerfile_template: |
+    FROM python:3.11-slim
+
+    WORKDIR /app
+
+    # Install dependencies
+    COPY requirements.txt .
+    RUN pip install --no-cache-dir -r requirements.txt
+
+    # Copy application
+    COPY . .
+
+    # Expose port for HF Spaces
+    EXPOSE 7860
+
+    # Run FastAPI with uvicorn
+    CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]
+
+# Environment Variables (Configure in HF Spaces Settings)
+environment_variables:
+  - name: "BETTER_AUTH_SECRET"
+    description: "Shared secret for JWT authentication (must match frontend)"
+    required: true
+    secret: true
+    notes: "MUST be identical to frontend BETTER_AUTH_SECRET"
+
+  - name: "DATABASE_URL"
+    description: "Neon PostgreSQL connection string for production"
+    required: true
+    secret: true
+    example: "postgresql://user:pass@host/db?sslmode=require"
+
+  - name: "ENVIRONMENT"
+    description: "Application environment"
+    required: true
+    value: "production"
+
+  - name: "FRONTEND_URL"
+    description: "Vercel production URL for CORS configuration"
+    required: true
+    example: "https://todo-fullstack-app.vercel.app"
+    notes: "Used to configure CORS allowed origins"
+
+  - name: "PORT"
+    description: "Port for FastAPI server"
+    required: true
+    value: "7860"
+    notes: "HF Spaces requires port 7860"
+
+# Git Integration
+git:
+  repository: "github.com/[username]/[repository]"
+  branch: "main"
+  auto_rebuild: true  # Rebuild on push to main
+  sync_frequency: "on_push"  # Trigger on every push
+
+  setup_steps:
+    - "Link GitHub repository to HF Space"
+    - "Configure sync from main branch"
+    - "Enable automatic rebuilds"
+    - "Set subdirectory to 'backend' (if monorepo)"
+
+# Build Configuration
+build:
+  command: "docker build -t backend ."
+  context: "backend/"  # If monorepo, specify backend directory
+  dockerfile_path: "backend/Dockerfile"
+  timeout: "20m"  # Maximum build time
+
+# Deployment Configuration
+deployment:
+  startup_command: "uvicorn src.main:app --host 0.0.0.0 --port 7860"
+  health_check_path: "/"
+  health_check_timeout: "30s"
+  restart_policy: "on-failure"
+
+# CORS Configuration (In Application Code)
+cors:
+  allowed_origins:
+    - "https://[your-app].vercel.app"       # Production frontend
+    - "https://*.vercel.app"                 # Preview deployments
+    - "http://localhost:3000"                # Local development
+  allow_credentials: true
+  allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  allow_headers: ["*"]
+  expose_headers: ["*"]
+
+# API Endpoints Available
+endpoints:
+  - path: "/"
+    method: "GET"
+    description: "Health check endpoint"
+    response: '{"status":"ok","environment":"production","version":"1.0.0"}'
+
+  - path: "/docs"
+    method: "GET"
+    description: "Swagger UI API documentation"
+
+  - path: "/redoc"
+    method: "GET"
+    description: "ReDoc API documentation"
+
+  - path: "/api/auth/signup"
+    method: "POST"
+    description: "User registration"
+
+  - path: "/api/auth/signin"
+    method: "POST"
+    description: "User authentication"
+
+  - path: "/api/users/{user_id}/todos"
+    method: "GET, POST"
+    description: "List and create tasks"
+
+  - path: "/api/users/{user_id}/todos/{todo_id}"
+    method: "GET, PUT, PATCH, DELETE"
+    description: "Task CRUD operations"
+
+# Output Format
+output:
+  space_url: "https://[username]-[space-name].hf.space"
+  api_base_url: "https://[username]-[space-name].hf.space/api"
+  docs_url: "https://[username]-[space-name].hf.space/docs"
+
+# Success Criteria
+success_criteria:
+  - "Docker build completes without errors"
+  - "Container starts successfully"
+  - "Health check endpoint returns 200 OK"
+  - "API documentation loads at /docs"
+  - "Database connection established"
+  - "All environment variables loaded"
+  - "CORS configured correctly"
+  - "HTTPS enforced automatically"
+
+# Monitoring
+monitoring:
+  logs: "Available in HF Spaces dashboard"
+  metrics: "Basic metrics provided by HF Spaces"
+  health_check: "Automatic via root endpoint"
+  uptime: "Monitored by HF Spaces infrastructure"
+
+# Rollback Strategy
+rollback:
+  method: "Git revert + automatic rebuild"
+  steps:
+    - "Identify problematic commit in GitHub"
+    - "Create revert commit: git revert <commit-hash>"
+    - "Push to main branch"
+    - "HF Space automatically rebuilds from reverted code"
+  notes: "HF Spaces rebuilds automatically on Git push"
+
+# Security Considerations
+security:
+  - "All secrets stored in HF Spaces settings (not in Dockerfile)"
+  - "HTTPS enforced by HF Spaces"
+  - "Environment variables not exposed in logs"
+  - "JWT secret must match frontend exactly"
+  - "Database connection uses SSL (sslmode=require)"
+  - "CORS restricts origins to Vercel domains"
+
+# Troubleshooting
+troubleshooting:
+  build_fails:
+    - "Check Dockerfile syntax"
+    - "Verify requirements.txt is complete"
+    - "Check build logs in HF Spaces dashboard"
+
+  container_fails_to_start:
+    - "Verify port 7860 is exposed and used"
+    - "Check environment variables are set"
+    - "Review startup command"
+
+  database_connection_fails:
+    - "Verify DATABASE_URL is correct"
+    - "Check Neon database is accessible"
+    - "Confirm SSL mode is configured"
+
+  cors_errors:
+    - "Verify FRONTEND_URL matches Vercel deployment"
+    - "Check CORS middleware configuration"
+    - "Ensure wildcard covers preview deployments"
