@@ -4,11 +4,13 @@ Authentication API endpoints for user signup and signin.
 This module provides REST API endpoints for user authentication:
 - POST /api/auth/signup - Create new user account
 - POST /api/auth/signin - Authenticate existing user
+- GET /api/auth/session - Get current session from HttpOnly cookie
 
-Both endpoints set httpOnly cookies with JWT tokens for session management.
+Both signup/signin endpoints set httpOnly cookies with JWT tokens for session management.
+The session endpoint reads the HttpOnly cookie and returns session data.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 from datetime import datetime
@@ -18,7 +20,7 @@ import uuid
 from ..database import get_session
 from ..models.user import User
 from ..schemas.auth import SignupRequest, SigninRequest, AuthResponse, UserResponse
-from ..auth.jwt import generate_jwt_token
+from ..auth.jwt import generate_jwt_token, verify_jwt_token
 from ..config import settings
 
 
@@ -316,4 +318,113 @@ async def signin(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during signin. Please try again."
+        )
+
+
+@router.get(
+    "/session",
+    status_code=status.HTTP_200_OK,
+    summary="Get current session from HttpOnly cookie",
+    responses={
+        200: {
+            "description": "Session retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "user": {
+                            "id": "550e8400-e29b-41d4-a716-446655440000",
+                            "email": "user@example.com",
+                            "created_at": "2024-01-15T10:30:00Z",
+                            "updated_at": "2024-01-15T10:30:00Z"
+                        },
+                        "expiresAt": 1705329000
+                    }
+                }
+            }
+        },
+        401: {"description": "No session cookie or invalid/expired token"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_session(
+    request: Request,
+    db_session: Session = Depends(get_session)
+):
+    """
+    Get current session by reading and verifying HttpOnly cookie.
+
+    **Purpose:**
+    This endpoint allows the frontend to check session status without being able
+    to read HttpOnly cookies directly via JavaScript. The browser automatically
+    includes HttpOnly cookies in the request, and this endpoint validates them.
+
+    **Process:**
+    1. Extract better-auth.session.token from request cookies
+    2. Verify JWT token signature and expiration
+    3. Look up user in database
+    4. Return user data and session expiration
+
+    **Security:**
+    - HttpOnly cookie prevents XSS attacks
+    - JWT signature verification prevents tampering
+    - Expiration check prevents use of old tokens
+    - No token in response body (already in HttpOnly cookie)
+
+    **Response:**
+    - 200 OK: Valid session with user data and expiration
+    - 401 Unauthorized: No cookie, invalid token, or expired session
+    - 500 Internal Server Error: Database or unexpected error
+    """
+    try:
+        # Extract token from HttpOnly cookie
+        token = request.cookies.get("better-auth.session.token")
+
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No session cookie found"
+            )
+
+        print(f"[AUTH] Session check - token found, length: {len(token)}")
+
+        # Verify JWT token (checks signature and expiration)
+        payload = verify_jwt_token(token)
+
+        print(f"[AUTH] Token verified - userId: {payload.userId}, email: {payload.email}")
+
+        # Look up user in database
+        statement = select(User).where(User.id == payload.userId)
+        user = db_session.exec(statement).first()
+
+        if not user:
+            print(f"[AUTH] Session check failed - user not found: {payload.userId}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+
+        # Return user data and session info
+        user_response = UserResponse(
+            id=user.id,
+            email=user.email,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
+
+        return {
+            "user": user_response.model_dump(mode='json'),
+            "expiresAt": payload.exp,
+            "token": token  # Include token for frontend to use in API calls
+        }
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 401 Unauthorized)
+        raise
+
+    except Exception as e:
+        # Log error and return generic message
+        print(f"[AUTH] Session check error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while checking session. Please try again."
         )

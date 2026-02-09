@@ -1,0 +1,55 @@
+import { createAuth } from "better-auth";
+import { env } from "../env";
+
+/**
+ * Better Auth Configuration
+ *
+ * This configures the Better Auth library for JWT-based authentication with secure cookies.
+ * The same BETTER_AUTH_SECRET must be used in both frontend and backend for JWT verification.
+ */
+export const auth = createAuth({
+  // Secret key for signing JWT tokens (from environment variable)
+  // Must be at least 32 characters and shared with backend
+  secret: env.BETTER_AUTH_SECRET,
+
+  // Session configuration
+  session: {
+    // Session duration: 7 days (604800 seconds)
+    // After this time, users must sign in again
+    expiresIn: 60 * 60 * 24 * 7,
+
+    // Cookie cache settings for session management
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 60 * 24 * 7, // Match session expiration
+    },
+  },
+
+  // Cookie configuration for storing JWT token
+  cookie: {
+    // Cookie name that will be sent to backend
+    // Backend must extract this exact cookie name for JWT verification
+    name: "better-auth.session.token",
+
+    options: {
+      // httpOnly: Prevents JavaScript access (XSS protection)
+      // The cookie cannot be accessed via document.cookie
+      httpOnly: true,
+
+      // secure: Only send cookie over HTTPS in production (MITM protection)
+      // Set to false in development to allow HTTP (localhost)
+      secure: env.NODE_ENV === "production",
+
+      // sameSite: Prevents CSRF attacks by restricting cross-site cookie sending
+      // "lax" allows cookies on top-level navigation (e.g., clicking links)
+      sameSite: "lax" as const,
+
+      // maxAge: Cookie expiration time (7 days in seconds)
+      // Browser will delete cookie after this duration
+      maxAge: 60 * 60 * 24 * 7,
+
+      // path: Cookie is sent for all routes starting with "/"
+      path: "/",
+    },
+  },
+});
