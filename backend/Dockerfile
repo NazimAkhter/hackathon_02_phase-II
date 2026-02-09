@@ -9,9 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY src ./src
 
-# Copy alembic configuration if exists
-COPY alembic.ini ./ 2>/dev/null || true
-COPY alembic ./alembic/ 2>/dev/null || true
+# Copy migrations directory
+COPY migrations ./migrations/
 
 # Expose Hugging Face Spaces port (HF Spaces standard port)
 EXPOSE 7860
