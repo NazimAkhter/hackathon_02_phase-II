@@ -82,3 +82,8 @@ Thumbs.db
 
 # Docker
 *.log*
+
+# Deployment secrets and info
+.deployment-secrets
+.deployment-info
+.deployment-secrets.tmp
