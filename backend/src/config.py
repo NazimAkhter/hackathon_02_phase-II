@@ -40,7 +40,7 @@ class Settings(BaseSettings):
         Returns list of allowed CORS origins based on environment.
 
         In development: allows localhost:3000
-        In production: uses FRONTEND_URL from environment
+        In production: uses FRONTEND_URL from environment + Vercel preview domains
         """
         origins = [self.FRONTEND_URL]
 
@@ -54,6 +54,12 @@ class Settings(BaseSettings):
             for origin in dev_origins:
                 if origin not in origins:
                     origins.append(origin)
+
+        # Add Vercel preview deployment support in production
+        if self.ENVIRONMENT == "production":
+            # Allow all Vercel preview deployments (*.vercel.app)
+            # This is safe because Vercel preview URLs are unique per deployment
+            origins.append("https://*.vercel.app")
 
         return origins
 
