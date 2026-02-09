@@ -130,18 +130,18 @@ async def signup(
         # Generate JWT token (7-day expiration)
         token = generate_jwt_token(user_id=new_user.id, email=new_user.email)
 
-        # Set session cookie (not httpOnly to allow client-side session checking)
-        # Note: We don't use HttpOnly to allow frontend to read the cookie
-        # for auth state checking (isAuthenticated, user info)
+        # Set session cookie with HttpOnly for security and Better Auth compatibility
+        # Note: Better Auth manages session state through its API, not by reading cookies directly
+        # HttpOnly prevents XSS attacks and is required for proper Better Auth session management
         cookie_options = [
             f"better-auth.session.token={token}",
-            # "HttpOnly",  # Removed to allow client-side reading for session checks
+            "HttpOnly",  # CRITICAL: Required for Better Auth session management and XSS protection
             "Path=/",
             "SameSite=Lax",
             f"Max-Age={60 * 60 * 24 * 7}",  # 7 days in seconds
         ]
 
-        # Add Secure flag in production
+        # Add Secure flag in production (HTTPS only)
         if settings.is_production:
             cookie_options.append("Secure")
 
@@ -269,18 +269,18 @@ async def signin(
         print(f"[AUTH DEBUG] Generated token for {user.email}: {token[:50]}...")
         print(f"[AUTH DEBUG] Token length: {len(token)}")
 
-        # Set session cookie (not httpOnly to allow client-side session checking)
-        # Note: We don't use HttpOnly to allow frontend to read the cookie
-        # for auth state checking (isAuthenticated, user info)
+        # Set session cookie with HttpOnly for security and Better Auth compatibility
+        # Note: Better Auth manages session state through its API, not by reading cookies directly
+        # HttpOnly prevents XSS attacks and is required for proper Better Auth session management
         cookie_options = [
             f"better-auth.session.token={token}",
-            # "HttpOnly",  # Removed to allow client-side reading for session checks
+            "HttpOnly",  # CRITICAL: Required for Better Auth session management and XSS protection
             "Path=/",
             "SameSite=Lax",
             f"Max-Age={60 * 60 * 24 * 7}",  # 7 days in seconds
         ]
 
-        # Add Secure flag in production
+        # Add Secure flag in production (HTTPS only)
         if settings.is_production:
             cookie_options.append("Secure")
 
