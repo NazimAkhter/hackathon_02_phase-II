@@ -63,7 +63,7 @@ Thumbs.db
 # migrations/ is needed
 
 # Deployment configs
-Dockerfile*
+# Note: Dockerfile is needed for Hugging Face Space deployment
 .dockerignore
 docker-compose*.yml
 
