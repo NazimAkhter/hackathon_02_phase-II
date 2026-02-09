@@ -1,0 +1,195 @@
+name: Deploy Backend to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  HF_SPACE_REPO: NazimBotExpert/todo-app
+  BACKEND_DIR: backend
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-huggingface-hub
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Hugging Face CLI
+        run: |
+          echo "📦 Installing Hugging Face CLI..."
+          pip install huggingface_hub
+          echo "✅ Hugging Face CLI installed successfully"
+
+      - name: Verify CLI Installation
+        run: |
+          echo "🔍 Verifying CLI installation..."
+          huggingface-cli --version
+          echo "✅ CLI verification passed"
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions Bot"
+
+      - name: Validate HF_TOKEN
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "🔐 Validating HF_TOKEN..."
+          if [ -z "$HF_TOKEN" ]; then
+            echo "❌ ERROR: HF_TOKEN secret is not configured"
+            echo "Please add HF_TOKEN to GitHub repository secrets"
+            exit 1
+          fi
+          if [[ ! "$HF_TOKEN" =~ ^hf_ ]]; then
+            echo "❌ ERROR: Invalid token format (must start with 'hf_')"
+            exit 1
+          fi
+          echo "✅ Token format validation passed"
+
+      - name: Authenticate with Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "🔑 Authenticating with Hugging Face..."
+          huggingface-cli login --token $HF_TOKEN
+          echo "✅ Authentication successful"
+
+      - name: Verify Authentication
+        run: |
+          echo "🔍 Verifying authentication..."
+          huggingface-cli whoami
+          echo "✅ Authentication verification passed"
+
+      - name: Clone Space Repository
+        run: |
+          echo "📥 Cloning Space repository..."
+          if ! git clone --depth 1 https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }} hf-space; then
+            echo "❌ ERROR: Failed to clone Space repository"
+            echo "Please verify:"
+            echo "  - Space exists at https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}"
+            echo "  - Token has read access to the Space"
+            exit 1
+          fi
+          echo "✅ Space repository cloned successfully"
+
+      - name: Sync Backend Files
+        run: |
+          echo "📂 Syncing backend files to Space..."
+          if [ ! -d "${{ env.BACKEND_DIR }}" ]; then
+            echo "❌ ERROR: Backend directory not found"
+            echo "Expected directory: ${{ env.BACKEND_DIR }}/"
+            exit 1
+          fi
+
+          echo "Files being synced:"
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.venv' \
+            --exclude='venv' \
+            --exclude='.env' \
+            ${{ env.BACKEND_DIR }}/ hf-space/
+
+          echo "✅ Files synced successfully"
+
+      - name: Commit and Push Changes
+        run: |
+          cd hf-space
+
+          echo "🔍 Checking for changes..."
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "📝 Changes detected, preparing commit..."
+
+            # Add all changes
+            git add .
+
+            # Show what will be committed
+            echo "Files to be committed:"
+            git status --short
+
+            # Commit changes
+            COMMIT_MSG="🚀 Auto-deploy backend from GitHub Actions
+
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+            Message: ${{ github.event.head_commit.message }}"
+
+            git commit -m "$COMMIT_MSG"
+            COMMIT_HASH=$(git rev-parse HEAD)
+            echo "✅ Commit created: $COMMIT_HASH"
+
+            # Push to Hugging Face Space (credentials from huggingface-cli login)
+            echo "📤 Pushing to Hugging Face Space..."
+            if ! git push origin main; then
+              echo "❌ ERROR: Failed to push to Space"
+              echo "Please verify:"
+              echo "  - Token has write access to the Space"
+              echo "  - Space is not locked or archived"
+              echo "  - Network connection is stable"
+              exit 1
+            fi
+
+            echo "✅ Backend deployed successfully to Hugging Face Space!"
+            echo "🔗 View deployment: https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}"
+          else
+            echo "ℹ️ No changes detected, skipping deployment"
+          fi
+
+      - name: Verify Deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep 30  # Wait for Space to rebuild
+
+          # Check if Space is accessible
+          SPACE_URL="https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $SPACE_URL)
+
+          if [ $HTTP_CODE -eq 200 ]; then
+            echo "✅ Space is accessible (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ Space returned HTTP $HTTP_CODE (may still be building)"
+          fi
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "## 📊 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Space**: ${{ env.HF_SPACE_REPO }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Space](https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [API Docs](https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}/docs)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Build Logs](https://huggingface.co/spaces/${{ env.HF_SPACE_REPO }}/logs)" >> $GITHUB_STEP_SUMMARY

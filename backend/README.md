@@ -86,7 +86,21 @@ uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
 ## Deployment
 
-This backend is configured for deployment on Hugging Face Spaces using Docker SDK.
+This backend is configured for **automatic deployment** on Hugging Face Spaces using Docker SDK via GitHub Actions CI/CD.
+
+**Deployment Status**: ✅ CI/CD Enabled & Security Fixed (2026-02-10)
+
+- **Platform**: Hugging Face Spaces
+- **Space**: https://huggingface.co/spaces/NazimBotExpert/todo-app
+- **Workflow**: `.github/workflows/deploy-backend.yml`
+- **Trigger**: Automatic on push to main with backend changes
+- **Security**: Token authentication via credential helper (no token exposure)
+
+**Recent Updates**:
+- ✅ Fixed token exposure vulnerability (2026-02-10)
+- ✅ Added token validation and verification steps
+- ✅ Added performance optimizations (caching, shallow clone)
+- ✅ Added comprehensive error handling
 
 See [HF_SPACES_DEPLOYMENT_GUIDE.md](../HF_SPACES_DEPLOYMENT_GUIDE.md) for complete deployment instructions.
 
