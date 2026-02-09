@@ -1,0 +1,113 @@
+name: Deploy Backend to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+      - 006-deployment-cicd
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Hugging Face CLI
+        run: |
+          pip install huggingface_hub
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions Bot"
+
+      - name: Deploy to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: NazimBotExpert/todo-app
+        run: |
+          # Login to Hugging Face
+          huggingface-cli login --token $HF_TOKEN
+
+          # Clone the Space repository
+          git clone https://huggingface.co/spaces/$HF_SPACE hf-space
+
+          # Copy backend files to Space
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.venv' \
+            --exclude='venv' \
+            --exclude='.env' \
+            backend/ hf-space/
+
+          # Navigate to Space directory
+          cd hf-space
+
+          # Check if there are changes
+          if [ -n "$(git status --porcelain)" ]; then
+            # Add all changes
+            git add .
+
+            # Commit changes
+            COMMIT_MSG="🚀 Auto-deploy backend from GitHub Actions
+
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+            Message: ${{ github.event.head_commit.message }}"
+
+            git commit -m "$COMMIT_MSG"
+
+            # Push to Hugging Face Space
+            git push https://oauth:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE main
+
+            echo "✅ Backend deployed successfully to Hugging Face Space!"
+          else
+            echo "ℹ️ No changes detected, skipping deployment"
+          fi
+
+      - name: Verify Deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          sleep 30  # Wait for Space to rebuild
+
+          # Check if Space is accessible
+          SPACE_URL="https://huggingface.co/spaces/NazimBotExpert/todo-app"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $SPACE_URL)
+
+          if [ $HTTP_CODE -eq 200 ]; then
+            echo "✅ Space is accessible (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️ Space returned HTTP $HTTP_CODE (may still be building)"
+          fi
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "## 📊 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Space**: NazimBotExpert/todo-app" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://huggingface.co/spaces/NazimBotExpert/todo-app" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Space](https://huggingface.co/spaces/NazimBotExpert/todo-app)" >> $GITHUB_STEP_SUMMARY
+          echo "- [API Docs](https://huggingface.co/spaces/NazimBotExpert/todo-app/docs)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Build Logs](https://huggingface.co/spaces/NazimBotExpert/todo-app/logs)" >> $GITHUB_STEP_SUMMARY
