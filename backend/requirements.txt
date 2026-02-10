@@ -1,16 +1,19 @@
-fastapi
-sqlmodel
-pyjwt
-bcrypt
-alembic
-uvicorn[standard]
-psycopg2-binary
-python-dotenv
-pydantic
-pydantic-settings
-email-validator
+fastapi==0.109.0
+sqlmodel==0.0.14
+pyjwt==2.8.0
+bcrypt==4.1.2
+alembic==1.13.1
+uvicorn[standard]==0.27.0
+psycopg2-binary==2.9.9
+python-dotenv==1.0.0
+pydantic==2.12.3
+pydantic-settings==2.12.0
+email-validator==2.1.0
 
-# Dev dependencies
-pytest
-pytest-asyncio
-httpx
+# Production dependencies
+gunicorn==21.2.0
+
+# Dev dependencies (optional for production)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
