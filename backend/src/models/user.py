@@ -58,4 +58,5 @@ class User(SQLModel, table=True):
         """SQLModel configuration."""
         # This model is read-only from backend perspective
         # Backend should never insert/update/delete users
-        validate_assignment = True
+        # Note: validate_assignment removed due to Pydantic v2 compatibility issues with SQLModel
+        pass

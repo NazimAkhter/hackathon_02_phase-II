@@ -11,7 +11,7 @@ import { logDebug, logWarn } from './logger';
 export interface WaitForSessionOptions {
   /**
    * Maximum wait time in milliseconds
-   * @default 1000
+   * @default 3000
    */
   maxWait?: number;
 
@@ -45,9 +45,10 @@ async function defaultCheckSession(): Promise<boolean> {
   }
 
   try {
-    // Make a lightweight API call to verify session
+    // Call the session endpoint to verify session
     // The browser automatically includes HttpOnly cookies in the request
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://nazimbotexpert-todo-app.hf.space'}/`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const response = await fetch(`${apiUrl}/api/auth/session`, {
       method: 'GET',
       credentials: 'include', // CRITICAL: Include cookies in request
       headers: {
@@ -55,8 +56,7 @@ async function defaultCheckSession(): Promise<boolean> {
       },
     });
 
-    // If we get a response (even if it's just the health check), the session cookie was sent
-    // This means the cookie exists and the browser can send it
+    // Session is valid if we get a 200 OK response
     return response.ok;
   } catch (error) {
     logWarn('defaultCheckSession', 'Session check failed', {
@@ -114,7 +114,7 @@ export async function waitForSession(
   options: WaitForSessionOptions = {}
 ): Promise<boolean> {
   const {
-    maxWait = 1000,
+    maxWait = 3000,
     interval = 50,
     checkSession = defaultCheckSession,
   } = options;

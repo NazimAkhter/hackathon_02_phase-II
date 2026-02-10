@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     # JWT Authentication
     BETTER_AUTH_SECRET: str
+    BETTER_AUTH_URL: str = "http://localhost:8000"
 
     # Database
     DATABASE_URL: str

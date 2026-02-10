@@ -13,11 +13,13 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setShowRetry(false);
 
     // Client-side validation
     if (!email || !password) {
@@ -40,9 +42,16 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signin failed. Please try again.';
       setError(errorMessage);
+      setShowRetry(true);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    setShowRetry(false);
+    // Form is already filled, user just needs to click submit again
   };
 
   return (
@@ -89,7 +98,7 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
         </div>
       </div>
 
-      <div>
+      <div className="space-y-3">
         <button
           type="submit"
           disabled={isLoading}
@@ -97,6 +106,16 @@ export default function SigninForm({ onSuccess }: SigninFormProps) {
         >
           {isLoading ? 'Signing in...' : 'Sign in'}
         </button>
+
+        {showRetry && !isLoading && (
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="w-full flex justify-center py-2 px-4 min-h-[44px] border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+          >
+            Try Again
+          </button>
+        )}
       </div>
     </form>
   );

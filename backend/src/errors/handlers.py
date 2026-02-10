@@ -9,7 +9,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, List
+import json
 
 
 # Custom Exception Classes
@@ -100,6 +101,39 @@ class DatabaseError(AppException):
 # Exception Handlers
 
 
+def make_json_serializable(obj: Any) -> Any:
+    """
+    Recursively convert any Python object to a JSON-serializable format.
+
+    This function handles nested structures and converts non-serializable
+    objects (like ValueError, Exception, etc.) to strings.
+
+    Args:
+        obj: Any Python object
+
+    Returns:
+        JSON-serializable version of the object
+    """
+    # Handle None
+    if obj is None:
+        return None
+
+    # Handle primitives that are already JSON-serializable
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+
+    # Handle lists and tuples
+    if isinstance(obj, (list, tuple)):
+        return [make_json_serializable(item) for item in obj]
+
+    # Handle dictionaries
+    if isinstance(obj, dict):
+        return {str(k): make_json_serializable(v) for k, v in obj.items()}
+
+    # Convert any other type to string (including ValueError, Exception, etc.)
+    return str(obj)
+
+
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """
     Handler for custom AppException errors.
@@ -121,15 +155,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Handler for FastAPI/Pydantic validation errors.
 
     Transforms validation errors into consistent error response format
-    with field-level error details.
+    with field-level error details. All error objects are converted to
+    JSON-serializable format to prevent serialization errors.
     """
     errors = exc.errors()
 
     # Extract field-level validation errors
     field_errors = {}
+    serialized_errors = []
+
     for error in errors:
+        # Build field path (exclude 'body' from location)
         field = ".".join(str(loc) for loc in error["loc"] if loc != "body")
-        field_errors[field] = error["msg"]
+        field_errors[field] = str(error.get("msg", "Validation error"))
+
+        # Serialize entire error dictionary using helper function
+        # This ensures all nested objects (including ValueError, etc.) are converted to strings
+        serialized_error = make_json_serializable(error)
+        serialized_errors.append(serialized_error)
 
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -138,7 +181,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "code": "ERR_VALIDATION_FAILED",
             "details": {
                 "fields": field_errors,
-                "errors": errors
+                "errors": serialized_errors
             }
         }
     )

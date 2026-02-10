@@ -1,0 +1,160 @@
+openapi: 3.0.3
+info:
+  title: Authentication Session API
+  description: API contract for session verification endpoint used to fix authentication timeout issues
+  version: 1.0.0
+  contact:
+    name: Todo Application Team
+
+servers:
+  - url: https://api.example.com
+    description: Production backend (Hugging Face Spaces)
+  - url: http://localhost:8000
+    description: Local development backend
+
+paths:
+  /api/auth/session:
+    get:
+      summary: Verify user session
+      description: |
+        Verifies the user's session by reading and validating the HttpOnly cookie containing the JWT token.
+        This endpoint is called by the frontend to check authentication status after login or on page load.
+
+        **Authentication Flow:**
+        1. Browser automatically includes HttpOnly cookie in request
+        2. Backend reads cookie from request headers
+        3. Backend verifies JWT signature and expiration
+        4. Backend returns user data if valid, 401 if invalid
+
+        **Security:**
+        - Cookie is HttpOnly (not accessible via JavaScript)
+        - JWT signature verified on every request
+        - Token expiration checked
+        - User existence validated in database
+      operationId: getSession
+      tags:
+        - Authentication
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Valid session found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                validSession:
+                  summary: Authenticated user session
+                  value:
+                    user:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: "user@example.com"
+                    expiresAt: 1771285287
+                    token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NzEyODUyODd9.signature"
+        '401':
+          description: No valid session found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noSession:
+                  summary: No session cookie present
+                  value:
+                    detail: "No session cookie found"
+                expiredToken:
+                  summary: JWT token expired
+                  value:
+                    detail: "Token has expired"
+                invalidToken:
+                  summary: Invalid JWT signature
+                  value:
+                    detail: "Invalid token signature"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Database or server error
+                  value:
+                    detail: "Internal server error"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session.token
+      description: HttpOnly cookie containing JWT token set by Better Auth during signin/signup
+
+  schemas:
+    SessionResponse:
+      type: object
+      required:
+        - user
+        - expiresAt
+        - token
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        expiresAt:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds since epoch) when the session expires
+          example: 1771285287
+        token:
+          type: string
+          description: JWT token string (same as cookie value)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "No session cookie found"
+
+  examples:
+    ValidSessionExample:
+      summary: Valid authenticated session
+      description: Response when user has valid session cookie
+      value:
+        user:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          email: "user@example.com"
+        expiresAt: 1771285287
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NzEyODUyODd9.signature"
+
+    NoSessionExample:
+      summary: No session cookie
+      description: Response when no session cookie is present in request
+      value:
+        detail: "No session cookie found"
+
+tags:
+  - name: Authentication
+    description: Session verification and authentication endpoints
