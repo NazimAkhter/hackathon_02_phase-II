@@ -103,18 +103,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // CRITICAL FIX: Wait for session cookie to be available before navigation
       // This prevents race condition where dashboard loads before cookie is processed
-      // Timeout increased to 3000ms to accommodate backend bcrypt operations (~2 seconds)
+      // Timeout increased to 5000ms to cover 95% of network conditions (including slow networks)
       // Uses default API-based check (compatible with HttpOnly cookies)
       logDebug('login', 'Waiting for session cookie to be available...');
 
       const sessionReady = await waitForSession({
-        maxWait: 3000, // Increased from 1000ms to accommodate backend response time
+        maxWait: 5000, // Increased to 5000ms to accommodate slow network conditions
         interval: 50,
         // Use default API-based check - no custom checkSession needed
       });
 
       if (!sessionReady) {
-        logError('login', 'Session not established after signin', { timeout: 3000 });
+        logError('login', 'Session not established after signin', { timeout: 5000 });
         throw new Error('Session could not be established. Please try again.');
       }
 
@@ -153,10 +153,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Wait for session to be established
-      // Timeout increased to 3000ms to accommodate backend bcrypt operations (~2 seconds)
+      // Timeout increased to 5000ms to cover 95% of network conditions (including slow networks)
       // Uses default API-based check (compatible with HttpOnly cookies)
       const sessionReady = await waitForSession({
-        maxWait: 3000, // Increased from 1000ms to accommodate backend response time
+        maxWait: 5000, // Increased to 5000ms to accommodate slow network conditions
         interval: 50,
         // Use default API-based check - no custom checkSession needed
       });

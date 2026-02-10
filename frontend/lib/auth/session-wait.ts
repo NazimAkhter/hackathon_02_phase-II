@@ -114,7 +114,7 @@ export async function waitForSession(
   options: WaitForSessionOptions = {}
 ): Promise<boolean> {
   const {
-    maxWait = 3000,
+    maxWait = 5000,
     interval = 50,
     checkSession = defaultCheckSession,
   } = options;
