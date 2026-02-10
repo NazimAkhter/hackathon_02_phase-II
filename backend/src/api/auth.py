@@ -139,13 +139,10 @@ async def signup(
             f"better-auth.session.token={token}",
             "HttpOnly",  # CRITICAL: Required for Better Auth session management and XSS protection
             "Path=/",
-            "SameSite=Lax",
+            "SameSite=None",  # CRITICAL: Required for cross-origin cookies (Vercel → HF Spaces)
+            "Secure",  # REQUIRED with SameSite=None (HTTPS only)
             f"Max-Age={60 * 60 * 24 * 7}",  # 7 days in seconds
         ]
-
-        # Add Secure flag in production (HTTPS only)
-        if settings.is_production:
-            cookie_options.append("Secure")
 
         cookie_value = "; ".join(cookie_options)
         response.headers["Set-Cookie"] = cookie_value
@@ -278,13 +275,10 @@ async def signin(
             f"better-auth.session.token={token}",
             "HttpOnly",  # CRITICAL: Required for Better Auth session management and XSS protection
             "Path=/",
-            "SameSite=Lax",
+            "SameSite=None",  # CRITICAL: Required for cross-origin cookies (Vercel → HF Spaces)
+            "Secure",  # REQUIRED with SameSite=None (HTTPS only)
             f"Max-Age={60 * 60 * 24 * 7}",  # 7 days in seconds
         ]
-
-        # Add Secure flag in production (HTTPS only)
-        if settings.is_production:
-            cookie_options.append("Secure")
 
         cookie_value = "; ".join(cookie_options)
 
