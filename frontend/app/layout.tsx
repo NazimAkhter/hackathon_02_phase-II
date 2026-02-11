@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Todo App - Manage Your Tasks",
   description: "A modern todo application with authentication and persistent storage",
+  // Force Vercel redeploy - 2026-02-11
 };
 
 /**
