@@ -9,11 +9,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application source code
 COPY src ./src
 
-# Copy migrations directory
+# Copy migrations directory and alembic configuration
 COPY migrations ./migrations/
+COPY alembic.ini .
+
+# Copy startup script and make it executable
+COPY start.sh .
+RUN chmod +x start.sh
 
 # Expose Hugging Face Spaces port (HF Spaces standard port)
 EXPOSE 7860
 
-# Run the FastAPI application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Run migrations and start the FastAPI application
+CMD ["./start.sh"]
