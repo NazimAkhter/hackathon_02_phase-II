@@ -166,8 +166,10 @@ async def signup(
         raise
 
     except Exception as e:
-        # Log error and return generic message
-        print(f"[AUTH] Signup error: {str(e)}")
+        # Log detailed error for debugging
+        import traceback
+        print(f"[AUTH ERROR] Signup failed: {str(e)}")
+        print(f"[AUTH ERROR] Traceback: {traceback.format_exc()}")
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -177,6 +179,7 @@ async def signup(
 
 @router.post(
     "/signin",
+    response_model=AuthResponse,
     status_code=status.HTTP_200_OK,
     summary="Authenticate existing user",
     responses={
@@ -191,7 +194,8 @@ async def signup(
                             "email": "user@example.com",
                             "created_at": "2024-01-15T10:30:00Z",
                             "updated_at": "2024-01-15T10:30:00Z"
-                        }
+                        },
+                        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                     }
                 }
             }
@@ -202,6 +206,7 @@ async def signup(
 )
 async def signin(
     request: SigninRequest,
+    response: Response,
     session: Session = Depends(get_session)
 ):
     """
@@ -265,8 +270,8 @@ async def signin(
         token = generate_jwt_token(user_id=user.id, email=user.email)
 
         # Debug logging
-        print(f"[AUTH DEBUG] Generated token for {user.email}: {token[:50]}...")
-        print(f"[AUTH DEBUG] Token length: {len(token)}")
+        print(f"[AUTH] Signin successful for {user.email}")
+        print(f"[AUTH DEBUG] Generated token length: {len(token)}")
 
         # Set session cookie with HttpOnly for security and Better Auth compatibility
         # Note: Better Auth manages session state through its API, not by reading cookies directly
@@ -281,8 +286,10 @@ async def signin(
         ]
 
         cookie_value = "; ".join(cookie_options)
+        response.headers["Set-Cookie"] = cookie_value
 
         # Return user data (exclude password_hash) and token
+        # FastAPI will automatically serialize datetime objects via response_model
         user_response = UserResponse(
             id=user.id,
             email=user.email,
@@ -290,25 +297,21 @@ async def signin(
             updated_at=user.updated_at
         )
 
-        # Use JSONResponse to ensure token is included
-        response_data = {
+        return {
             "message": "Signed in successfully",
-            "user": user_response.model_dump(mode='json'),
+            "user": user_response,
             "token": token
         }
-
-        json_response = JSONResponse(content=response_data, status_code=200)
-        json_response.headers["Set-Cookie"] = cookie_value
-
-        return json_response
 
     except HTTPException:
         # Re-raise HTTP exceptions (like 401 Unauthorized)
         raise
 
     except Exception as e:
-        # Log error and return generic message
-        print(f"[AUTH] Signin error: {str(e)}")
+        # Log detailed error for debugging
+        import traceback
+        print(f"[AUTH ERROR] Signin failed: {str(e)}")
+        print(f"[AUTH ERROR] Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during signin. Please try again."

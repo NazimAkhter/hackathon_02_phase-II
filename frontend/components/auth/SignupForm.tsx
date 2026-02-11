@@ -36,6 +36,15 @@ export default function SignupForm({ onSuccess }: SignupFormProps) {
       return;
     }
 
+    // Validate password contains both letters and numbers (matches backend requirement)
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!hasLetter || !hasNumber) {
+      setError('Password must contain both letters and numbers');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
