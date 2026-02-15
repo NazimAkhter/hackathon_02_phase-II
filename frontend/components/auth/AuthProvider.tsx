@@ -179,7 +179,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout function
   const logout = async (): Promise<void> => {
     try {
-      // Clear session cookie
+      // Call backend logout endpoint to clear HttpOnly cookie
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: 'include', // Send cookies
+      });
+
+      // Clear local session state
       clearSession();
 
       // Reset state
@@ -190,6 +196,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       router.push("/signin");
     } catch (error) {
       console.error("Logout error:", error);
+      // Even if backend call fails, clear local state and redirect
+      clearSession();
+      setUser(null);
+      setApiClient(null);
+      router.push("/signin");
     }
   };
 

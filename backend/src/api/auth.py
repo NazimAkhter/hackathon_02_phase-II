@@ -318,6 +318,64 @@ async def signin(
         )
 
 
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+    summary="Logout user and clear session cookie",
+    responses={
+        200: {
+            "description": "Logged out successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "message": "Logged out successfully"
+                    }
+                }
+            }
+        }
+    }
+)
+async def logout(response: Response):
+    """
+    Logout user by clearing the HttpOnly session cookie.
+
+    **Process:**
+    1. Set session cookie with expired date to delete it
+    2. Return success message
+
+    **Security:**
+    - Clears HttpOnly cookie (cannot be deleted by JavaScript)
+    - Sets all cookie attributes to match original cookie
+    - SameSite=None and Secure for cross-origin compatibility
+
+    **Response:**
+    - 200 OK: Logout successful, cookie cleared
+    """
+    try:
+        # Clear session cookie by setting it with expired date
+        # CRITICAL: Must match all attributes used when setting the cookie
+        cookie_options = [
+            "better-auth.session.token=",
+            "HttpOnly",
+            "Path=/",
+            "SameSite=None",
+            "Secure",
+            "Max-Age=0",  # Expire immediately
+        ]
+
+        cookie_value = "; ".join(cookie_options)
+        response.headers["Set-Cookie"] = cookie_value
+
+        return {"message": "Logged out successfully"}
+
+    except Exception as e:
+        print(f"[AUTH ERROR] Logout failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during logout. Please try again."
+        )
+
+
 @router.get(
     "/session",
     status_code=status.HTTP_200_OK,
