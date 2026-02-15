@@ -393,8 +393,10 @@ export function clearSession(): void {
   }
 
   // Set cookie with past expiration date to delete it
+  // IMPORTANT: Must match all attributes used when setting the cookie
+  // Including SameSite=None and Secure for cross-origin cookies
   document.cookie =
-    "better-auth.session.token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    "better-auth.session.token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure";
 
   logDebug('clearSession', 'Session cookie cleared successfully');
 }
