@@ -75,6 +75,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check if request is coming from signin/signup (allow immediate access)
+  const referer = request.headers.get("referer");
+  if (referer && (referer.includes("/signin") || referer.includes("/signup"))) {
+    // Allow access - the dashboard page will validate the session
+    return NextResponse.next();
+  }
+
   // Get JWT token from cookies
   const token = request.cookies.get("better-auth.session.token")?.value;
 
