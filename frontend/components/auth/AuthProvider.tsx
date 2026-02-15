@@ -180,7 +180,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async (): Promise<void> => {
     try {
       // Call backend logout endpoint to clear HttpOnly cookie
-      await fetch(`${API_URL}/api/auth/logout`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
         method: "POST",
         credentials: 'include', // Send cookies
       });
